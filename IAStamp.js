@@ -92,18 +92,22 @@ CoreApplication.ensureMinimumVersion( 1, 9, 4 );
 #define IASTAMP_SCRIPT_DIR ( File.extractDrive( #__FILE__ ) + File.extractDirectory( #__FILE__ ) )
 #define IASTAMP_AUTO_CLI ( IASTAMP_SCRIPT_DIR + "/python/stamp/cli_stamp.py" )
 
-// python.exe isn't shipped in the folder (a full Python install, and
-// several GB once torch/LaMa are installed) -- tried in order: (1) a venv
-// the user set up themselves right inside this shared folder (the
+// python.exe/python3 isn't shipped in the folder (a full Python install,
+// and several GB once torch/LaMa are installed) -- tried in order: (1) a
+// venv the user set up themselves right inside this shared folder (the
 // self-contained way to share/run this tool elsewhere, see README.md),
-// (2) this developer machine's existing HaloNet venv (kept so the
-// original setup this was built against keeps working with zero
-// reconfiguration). Falls back to "" (wrench button) if neither exists.
+// checked under both its Windows layout (venv/Scripts/python.exe) and its
+// macOS/Linux layout (venv/bin/python3), (2) this developer machine's
+// existing HaloNet venv, same two layouts, kept so the original setup this
+// was built against keeps working with zero reconfiguration. Falls back to
+// "" (wrench button) if none exist.
 function iastampAutoDetectPython()
 {
    var candidates = [
       IASTAMP_SCRIPT_DIR + "/python/venv/Scripts/python.exe",
-      IASTAMP_SCRIPT_DIR + "/../../.venv/Scripts/python.exe"
+      IASTAMP_SCRIPT_DIR + "/python/venv/bin/python3",
+      IASTAMP_SCRIPT_DIR + "/../../.venv/Scripts/python.exe",
+      IASTAMP_SCRIPT_DIR + "/../../.venv/bin/python3"
    ];
    for ( var i = 0; i < candidates.length; ++i )
       if ( File.exists( candidates[i] ) )
