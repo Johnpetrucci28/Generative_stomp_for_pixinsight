@@ -1,0 +1,7 @@
+torch
+numpy
+pillow
+scipy
+opencv-python-headless
+simple-lama-inpainting
+astropy
