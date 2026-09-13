@@ -1,4 +1,4 @@
-"""CLI bridge for the PixInsight script (IAStomp.js): stamps out a masked
+"""CLI bridge for the PixInsight script (IAStamp.js): stamps out a masked
 region on a LINEAR astro crop and writes the result back to disk.
 
 PJSR (PixInsight's JS engine) can't run PyTorch/LaMa itself, so the .js
@@ -25,9 +25,9 @@ from PIL import Image
 SRC_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(SRC_DIR))
 
-from stomp.classical_engine import inpaint_classical  # noqa: E402
-from stomp.linear_stretch import forward_stretch, inverse_stretch  # noqa: E402
-from stomp.region import feather_paste, match_noise  # noqa: E402
+from stamp.classical_engine import inpaint_classical  # noqa: E402
+from stamp.linear_stretch import forward_stretch, inverse_stretch  # noqa: E402
+from stamp.region import feather_paste, match_noise  # noqa: E402
 
 
 def main():
@@ -64,7 +64,7 @@ def main():
     rgb8 = np.stack([stretched] * 3, axis=-1) if is_mono else stretched
 
     if args.engine == "lama":
-        from stomp.lama_engine import LamaEngine
+        from stamp.lama_engine import LamaEngine
 
         engine = LamaEngine()
         result_rgb8 = np.array(engine.inpaint(Image.fromarray(rgb8), Image.fromarray(mask_u8)))

@@ -1,4 +1,4 @@
-# Dependances externes -- IA stomp
+# Dependances externes -- IA stamp
 
 Conformement a la politique de licence HaloNet (donnees d'entrainement
 maison uniquement, aucun poids/code/dataset externe sans validation

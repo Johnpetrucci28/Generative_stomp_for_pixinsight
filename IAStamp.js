@@ -1,10 +1,10 @@
 #engine v8
 
-#feature-id    IAStomp : IA stomp > Generative Stamp
+#feature-id    IAStamp : IA stamp > Generative Stamp
 #feature-info  Paint over a region and regenerate it with a local generative inpainting model (LaMa) or a classical fallback.
 
 /*
- * IA stomp -- intelligent generative stamp for PixInsight.
+ * IA stamp -- intelligent generative stamp for PixInsight.
  *
  * Paint over a region of the active view with the brush (drag with the
  * left button to add, hold Ctrl while dragging to subtract from the
@@ -52,7 +52,7 @@
  * plain subprocess call exchanging single-channel FITS files on disk.
  *
  * First-time setup: normally none -- python.exe and cli_stamp.py are
- * auto-located from this script's own position (see IASTOMP_AUTO_*
+ * auto-located from this script's own position (see IASTAMP_AUTO_*
  * below). The "..." buttons are only a fallback if that auto-detection
  * doesn't match your setup.
  *
@@ -74,7 +74,7 @@ CoreApplication.ensureMinimumVersion( 1, 9, 4 );
 // Sizer.jsh isn't safe to include twice ("Identifier 'HorizontalSizer'
 // has already been declared") -- confirmed by an actual run.
 
-#define SETTINGS_PREFIX "IAStomp/"
+#define SETTINGS_PREFIX "IAStamp/"
 #define PAD_PX          64
 #define MIN_CROP_PX     256
 #define VIEWPORT_W      900
@@ -89,8 +89,8 @@ CoreApplication.ensureMinimumVersion( 1, 9, 4 );
 // this script needs (besides Python itself) lives under this same
 // "pixinsight" folder, so the whole folder is self-contained and can be
 // copied/shared as a unit -- see README.md alongside this file.
-#define IASTOMP_SCRIPT_DIR ( File.extractDrive( #__FILE__ ) + File.extractDirectory( #__FILE__ ) )
-#define IASTOMP_AUTO_CLI ( IASTOMP_SCRIPT_DIR + "/python/stomp/cli_stamp.py" )
+#define IASTAMP_SCRIPT_DIR ( File.extractDrive( #__FILE__ ) + File.extractDirectory( #__FILE__ ) )
+#define IASTAMP_AUTO_CLI ( IASTAMP_SCRIPT_DIR + "/python/stamp/cli_stamp.py" )
 
 // python.exe isn't shipped in the folder (a full Python install, and
 // several GB once torch/LaMa are installed) -- tried in order: (1) a venv
@@ -99,11 +99,11 @@ CoreApplication.ensureMinimumVersion( 1, 9, 4 );
 // (2) this developer machine's existing HaloNet venv (kept so the
 // original setup this was built against keeps working with zero
 // reconfiguration). Falls back to "" (wrench button) if neither exists.
-function iastompAutoDetectPython()
+function iastampAutoDetectPython()
 {
    var candidates = [
-      IASTOMP_SCRIPT_DIR + "/python/venv/Scripts/python.exe",
-      IASTOMP_SCRIPT_DIR + "/../../.venv/Scripts/python.exe"
+      IASTAMP_SCRIPT_DIR + "/python/venv/Scripts/python.exe",
+      IASTAMP_SCRIPT_DIR + "/../../.venv/Scripts/python.exe"
    ];
    for ( var i = 0; i < candidates.length; ++i )
       if ( File.exists( candidates[i] ) )
@@ -113,17 +113,17 @@ function iastompAutoDetectPython()
 
 // ============================================================================
 // Persisted configuration (Python + CLI script paths -- auto-detected by
-// default, see IASTOMP_AUTO_* above; only overridden if the user explicitly
+// default, see IASTAMP_AUTO_* above; only overridden if the user explicitly
 // browses to a different path, which is then remembered for next time)
 // ============================================================================
 
-function iastompLoadSetting( key, defaultValue )
+function iastampLoadSetting( key, defaultValue )
 {
    var v = Settings.read( SETTINGS_PREFIX + key, DataType.UTF16String );
    return ( v && v.length > 0 ) ? v : defaultValue;
 }
 
-function iastompSaveSetting( key, value )
+function iastampSaveSetting( key, value )
 {
    Settings.write( SETTINGS_PREFIX + key, DataType.UTF16String, value );
 }
@@ -133,7 +133,7 @@ function iastompSaveSetting( key, value )
 // CosmicClarity_SASpro.js script for calling an external AI backend)
 // ============================================================================
 
-function iastompRunExternalProcessBlocking( program, args )
+function iastampRunExternalProcessBlocking( program, args )
 {
    var process = new ExternalProcess;
    var stdoutText = "", stderrText = "";
@@ -150,14 +150,14 @@ function iastompRunExternalProcessBlocking( program, args )
    return { ok: process.exitCode === 0, exitCode: process.exitCode, stdout: stdoutText, stderr: stderrText };
 }
 
-function iastompMsleep( ms )
+function iastampMsleep( ms )
 {
    var t0 = new Date().getTime();
    while ( new Date().getTime() - t0 < ms )
       CoreApplication.processEvents();
 }
 
-function iastompOpenImageWithRetries( path, attempts, delayMs )
+function iastampOpenImageWithRetries( path, attempts, delayMs )
 {
    var lastError = "";
    for ( var i = 0; i < attempts; ++i )
@@ -171,7 +171,7 @@ function iastompOpenImageWithRetries( path, attempts, delayMs )
       }
       catch ( e ) { lastError = e.message; }
       if ( i < attempts - 1 )
-         iastompMsleep( delayMs );
+         iastampMsleep( delayMs );
    }
    throw new Error( "Could not open result file: " + path + " (" + lastError + ")" );
 }
@@ -180,22 +180,22 @@ function iastompOpenImageWithRetries( path, attempts, delayMs )
 // Temp files
 // ============================================================================
 
-function iastompTempDir()
+function iastampTempDir()
 {
-   var dir = File.systemTempDirectory + "/IAStomp";
+   var dir = File.systemTempDirectory + "/IAStamp";
    if ( !File.directoryExists( dir ) )
       File.createDirectory( dir );
    return dir;
 }
 
-function iastompUniqueBase()
+function iastampUniqueBase()
 {
-   return iastompTempDir() + "/" + new Date().getTime();
+   return iastampTempDir() + "/" + new Date().getTime();
 }
 
-function iastompSaveChannelAsFits( samples, w, h, path )
+function iastampSaveChannelAsFits( samples, w, h, path )
 {
-   var win = new ImageWindow( w, h, 1, 32, true, false, "iastomp_tmp" );
+   var win = new ImageWindow( w, h, 1, 32, true, false, "iastamp_tmp" );
    win.mainView.beginProcess( UndoFlag.NoSwapFile );
    win.mainView.image.setSamples( samples, new Rect( 0, 0, w, h ), 0 );
    win.mainView.endProcess();
@@ -222,7 +222,7 @@ function iastompSaveChannelAsFits( samples, w, h, path )
 //      convention that happens to work in that script's own flow).
 //   3. H needs 5 rows (R, G, B, K, L), not 4 -- the L (luminance) row was
 //      missing entirely.
-// iastompFindMidtonesBalance() is Conejero's own bisection solver for the
+// iastampFindMidtonesBalance() is Conejero's own bisection solver for the
 // midtones balance, kept as its own function on purpose.
 //
 // IMPORTANT (still true): ScreenTransferFunction.executeOn() only sets a
@@ -230,13 +230,13 @@ function iastompSaveChannelAsFits( samples, w, h, path )
 // Image.render() (what this script uses to build its preview Bitmap)
 // completely ignores it and always rasterizes raw linear data. That's why
 // this bakes the stretch into real pixel data of a disposable clone via
-// HistogramTransformation (see iastompRebuildPreview() below) instead.
+// HistogramTransformation (see iastampRebuildPreview() below) instead.
 // ============================================================================
 
-#define IASTOMP_STF_SHADOWS_CLIP -1.25 // PixInsight's own real AutoSTF default (doc/tools/ScreenTransferFunction)
-#define IASTOMP_STF_TARGET_BKG    0.25
+#define IASTAMP_STF_SHADOWS_CLIP -1.25 // PixInsight's own real AutoSTF default (doc/tools/ScreenTransferFunction)
+#define IASTAMP_STF_TARGET_BKG    0.25
 
-function iastompFindMidtonesBalance( v0, v1, eps )
+function iastampFindMidtonesBalance( v0, v1, eps )
 {
    if ( v1 <= 0 ) return 0;
    if ( v1 >= 1 ) return 1;
@@ -262,7 +262,7 @@ function iastompFindMidtonesBalance( v0, v1, eps )
 
 // Returns one [c0, m, c1, r0, r1] tuple per channel (length 1 for mono, 3
 // for color) -- already in HistogramTransformation.H's real field order.
-function iastompComputeAutoStf( image )
+function iastampComputeAutoStf( image )
 {
    var n = image.isColor ? 3 : 1;
    var result = [];
@@ -273,8 +273,8 @@ function iastompComputeAutoStf( image )
       var avgDev = image.avgDev();
       image.resetSelections();
 
-      var c0 = Math.range( median + IASTOMP_STF_SHADOWS_CLIP * avgDev, 0.0, 1.0 );
-      var m = iastompFindMidtonesBalance( IASTOMP_STF_TARGET_BKG, median - c0 );
+      var c0 = Math.range( median + IASTAMP_STF_SHADOWS_CLIP * avgDev, 0.0, 1.0 );
+      var m = iastampFindMidtonesBalance( IASTAMP_STF_TARGET_BKG, median - c0 );
       result.push( [ c0, m, 1, 0, 1 ] );
    }
    return result;
@@ -284,20 +284,20 @@ function iastompComputeAutoStf( image )
 // disposable clone of the WORKING COPY's current pixel data (dialog.
 // workingWindow -- not the real view, and not itself editable), stretched
 // via HistogramTransformation with a freshly computed AutoSTF (see
-// iastompComputeAutoStf() above), or a plain untouched copy when STF is
+// iastampComputeAutoStf() above), or a plain untouched copy when STF is
 // off. Purely a display convenience (Image.render() can't honor View.stf
-// directly, see the note above iastompComputeAutoStf) -- rebuilt after
+// directly, see the note above iastampComputeAutoStf) -- rebuilt after
 // every stamp/undo. H's 5 rows are [R, G, B, K, L] in
 // [c0, m, c1, r0, r1] order per row (see AdP/AutoStretch.js's HardApply,
 // the ground truth this was ported from): mono images put their one
 // computed stretch in the K row (index 3) and leave R/G/B/L at identity;
 // color images put one stretch per channel in R/G/B and leave K/L at
 // identity.
-function iastompRebuildPreview( dialog )
+function iastampRebuildPreview( dialog )
 {
    var src = dialog.workingWindow.mainView.image;
    if ( !dialog.previewWindow )
-      dialog.previewWindow = new ImageWindow( src.width, src.height, src.numberOfChannels, 32, true, src.isColor, "iastomp_preview" );
+      dialog.previewWindow = new ImageWindow( src.width, src.height, src.numberOfChannels, 32, true, src.isColor, "iastamp_preview" );
 
    var v = dialog.previewWindow.mainView;
    v.beginProcess( UndoFlag.NoSwapFile );
@@ -307,7 +307,7 @@ function iastompRebuildPreview( dialog )
    if ( dialog.stfEnabled )
    {
       var stf;
-      try { stf = iastompComputeAutoStf( src ); }
+      try { stf = iastampComputeAutoStf( src ); }
       catch ( e ) { stf = null; }
 
       if ( stf )
@@ -331,7 +331,7 @@ function iastompRebuildPreview( dialog )
 // they overlap earlier ones) -> a Float64Array over the crop bbox.
 // ============================================================================
 
-function iastompStrokesBBox( strokes, imgW, imgH )
+function iastampStrokesBBox( strokes, imgW, imgH )
 {
    var minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
    for ( var i = 0; i < strokes.length; ++i )
@@ -356,7 +356,7 @@ function iastompStrokesBBox( strokes, imgW, imgH )
    return new Rect( x0, y0, x1, y1 );
 }
 
-function iastompRasterizeMask( strokes, rect )
+function iastampRasterizeMask( strokes, rect )
 {
    var w = rect.width, h = rect.height;
    var mask = new Float64Array( w * h );
@@ -390,7 +390,7 @@ function iastompRasterizeMask( strokes, rect )
 // filled) that show what's actually selected while dragging.
 // ============================================================================
 
-var StompViewport = class extends ScrollBox
+var StampViewport = class extends ScrollBox
 {
    constructor( parent, dialog )
    {
@@ -614,18 +614,18 @@ var StompViewport = class extends ScrollBox
 // always showing these rarely-touched fields on the main dialog.
 // ============================================================================
 
-var IAStompConfigDialog = class extends Dialog
+var IAStampConfigDialog = class extends Dialog
 {
    constructor( owner )
    {
       super();
       this.owner = owner;
-      this.windowTitle = "IA stomp -- configuration";
+      this.windowTitle = "IA stamp -- configuration";
 
       this.pythonEdit = new Edit( this );
       this.pythonEdit.text = owner.pythonExe;
       this.pythonEdit.toolTip = "Chemin vers python.exe (idealement un venv dans pixinsight/python/venv/, voir README.md).";
-      this.pythonEdit.onEditCompleted = () => { owner.pythonExe = this.pythonEdit.text; iastompSaveSetting( "pythonExe", owner.pythonExe ); };
+      this.pythonEdit.onEditCompleted = () => { owner.pythonExe = this.pythonEdit.text; iastampSaveSetting( "pythonExe", owner.pythonExe ); };
 
       this.pythonBrowse = new ToolButton( this );
       this.pythonBrowse.text = "...";
@@ -638,14 +638,14 @@ var IAStompConfigDialog = class extends Dialog
          {
             owner.pythonExe = ofd.filePath;
             this.pythonEdit.text = owner.pythonExe;
-            iastompSaveSetting( "pythonExe", owner.pythonExe );
+            iastampSaveSetting( "pythonExe", owner.pythonExe );
          }
       };
 
       this.cliEdit = new Edit( this );
       this.cliEdit.text = owner.cliScript;
-      this.cliEdit.toolTip = "Chemin vers pixinsight/python/stomp/cli_stamp.py";
-      this.cliEdit.onEditCompleted = () => { owner.cliScript = this.cliEdit.text; iastompSaveSetting( "cliScript", owner.cliScript ); };
+      this.cliEdit.toolTip = "Chemin vers pixinsight/python/stamp/cli_stamp.py";
+      this.cliEdit.onEditCompleted = () => { owner.cliScript = this.cliEdit.text; iastampSaveSetting( "cliScript", owner.cliScript ); };
 
       this.cliBrowse = new ToolButton( this );
       this.cliBrowse.text = "...";
@@ -658,7 +658,7 @@ var IAStompConfigDialog = class extends Dialog
          {
             owner.cliScript = ofd.filePath;
             this.cliEdit.text = owner.cliScript;
-            iastompSaveSetting( "cliScript", owner.cliScript );
+            iastampSaveSetting( "cliScript", owner.cliScript );
          }
       };
 
@@ -700,12 +700,12 @@ var IAStompConfigDialog = class extends Dialog
 // Main dialog
 // ============================================================================
 
-var IAStompDialog = class extends Dialog
+var IAStampDialog = class extends Dialog
 {
    constructor()
    {
       super();
-      this.windowTitle = "IA stomp -- tampon generatif";
+      this.windowTitle = "IA stamp -- tampon generatif";
 
       var window = ImageWindow.activeWindow;
       if ( window.isNull )
@@ -715,23 +715,23 @@ var IAStompDialog = class extends Dialog
 
       // Working copy: every "Tamponner" reads/writes only this, never the
       // real view, until "Appliquer a l'image" commits it all at once.
-      this.workingWindow = new ImageWindow( img.width, img.height, img.numberOfChannels, 32, true, img.isColor, "iastomp_working" );
+      this.workingWindow = new ImageWindow( img.width, img.height, img.numberOfChannels, 32, true, img.isColor, "iastamp_working" );
       this.workingWindow.mainView.beginProcess( UndoFlag.NoSwapFile );
       this.workingWindow.mainView.image.assign( img );
       this.workingWindow.mainView.endProcess();
 
-      this.previewWindow = null; // built by iastompRebuildPreview() below -- STF-baked display clone only, never edited directly
+      this.previewWindow = null; // built by iastampRebuildPreview() below -- STF-baked display clone only, never edited directly
       this.stfEnabled = true;
       this.lastStampSnapshot = null; // set by doStamp(), consumed by undoLastStamp()
       this.stampCount = 0; // > 0 means unapplied changes sit in workingWindow
 
       // Auto-detected from this script's own location by default (see
-      // IASTOMP_AUTO_* above) -- only overridden if a Settings value from an
+      // IASTAMP_AUTO_* above) -- only overridden if a Settings value from an
       // earlier manual "..." browse exists AND that path still exists.
-      var autoCli = File.exists( IASTOMP_AUTO_CLI ) ? IASTOMP_AUTO_CLI : "";
-      var autoPython = iastompAutoDetectPython();
-      this.pythonExe = iastompLoadSetting( "pythonExe", autoPython );
-      this.cliScript = iastompLoadSetting( "cliScript", autoCli );
+      var autoCli = File.exists( IASTAMP_AUTO_CLI ) ? IASTAMP_AUTO_CLI : "";
+      var autoPython = iastampAutoDetectPython();
+      this.pythonExe = iastampLoadSetting( "pythonExe", autoPython );
+      this.cliScript = iastampLoadSetting( "cliScript", autoCli );
       if ( this.pythonExe && !File.exists( this.pythonExe ) ) this.pythonExe = autoPython;
       if ( this.cliScript && !File.exists( this.cliScript ) ) this.cliScript = autoCli;
       this.engine = "lama";
@@ -751,7 +751,7 @@ var IAStompDialog = class extends Dialog
          this.newInstance();
       };
 
-      // python.exe/cli_stamp.py paths are auto-detected (see IASTOMP_AUTO_*
+      // python.exe/cli_stamp.py paths are auto-detected (see IASTAMP_AUTO_*
       // above) and rarely need touching -- tucked behind this wrench button
       // instead of always showing on the main dialog (same convention as
       // Toolbox/GraXpertDenoise.js's setup_Button).
@@ -759,7 +759,7 @@ var IAStompDialog = class extends Dialog
       this.configButton.icon = this.scaledResource( ":/icons/wrench.png" );
       this.configButton.setScaledFixedSize( 24, 24 );
       this.configButton.toolTip = "Configurer les chemins python.exe / cli_stamp.py (auto-detectes par defaut).";
-      this.configButton.onClick = () => { new IAStompConfigDialog( this ).execute(); };
+      this.configButton.onClick = () => { new IAStampConfigDialog( this ).execute(); };
 
       var configSizer = new HorizontalSizer;
       configSizer.spacing = 4;
@@ -824,7 +824,7 @@ var IAStompDialog = class extends Dialog
       this.stfCheckBox.onCheck = ( checked ) =>
       {
          this.stfEnabled = checked;
-         this.viewport.image = iastompRebuildPreview( this );
+         this.viewport.image = iastampRebuildPreview( this );
          this.viewport.refreshBitmap();
       };
 
@@ -850,8 +850,8 @@ var IAStompDialog = class extends Dialog
       toolsSizer2.add( this.featherControl, 100 );
 
       // -- viewport ----------------------------------------------------------
-      this.viewport = new StompViewport( this, this );
-      this.viewport.setImage( iastompRebuildPreview( this ), img.width, img.height );
+      this.viewport = new StampViewport( this, this );
+      this.viewport.setImage( iastampRebuildPreview( this ), img.width, img.height );
 
       var helpLabel = new Label( this );
       helpLabel.text = "Glisser: peindre -- Ctrl+glisser: retirer de la selection -- Ctrl+clic droit+glisser: ajuster le diametre du pinceau -- molette: zoom.";
@@ -933,7 +933,7 @@ var IAStompDialog = class extends Dialog
          if ( imported !== this.stfEnabled )
          {
             this.stfEnabled = imported;
-            this.viewport.image = iastompRebuildPreview( this );
+            this.viewport.image = iastampRebuildPreview( this );
             this.viewport.refreshBitmap();
          }
          this.stfCheckBox.checked = this.stfEnabled;
@@ -952,7 +952,7 @@ var IAStompDialog = class extends Dialog
          var strokes = this.viewport.strokes;
          if ( strokes.length === 0 || !strokes.some( s => s.mode !== "sub" ) )
          {
-            new MessageBox( "Peins d'abord une zone a remplir.", "IA stomp", StdIcon.Information, StdButton.Ok ).execute();
+            new MessageBox( "Peins d'abord une zone a remplir.", "IA stamp", StdIcon.Information, StdButton.Ok ).execute();
             return;
          }
 
@@ -961,10 +961,10 @@ var IAStompDialog = class extends Dialog
          CoreApplication.processEvents();
 
          var image = this.workingWindow.mainView.image;
-         var rect = iastompStrokesBBox( strokes, image.width, image.height );
-         var maskSamples = iastompRasterizeMask( strokes, rect );
+         var rect = iastampStrokesBBox( strokes, image.width, image.height );
+         var maskSamples = iastampRasterizeMask( strokes, rect );
 
-         var base = iastompUniqueBase();
+         var base = iastampUniqueBase();
          var numChannels = image.numberOfChannels;
          var inPaths = [], outPaths = [];
          var preStampChannels = []; // kept for the in-dialog undo button, see below
@@ -976,13 +976,13 @@ var IAStompDialog = class extends Dialog
             preStampChannels.push( samples.slice() ); // .slice() copies -- samples itself gets no further writes, but be explicit
             var inPath = base + "_in_c" + c + ".fits";
             var outPath = base + "_out_c" + c + ".fits";
-            iastompSaveChannelAsFits( samples, rect.width, rect.height, inPath );
+            iastampSaveChannelAsFits( samples, rect.width, rect.height, inPath );
             inPaths.push( inPath );
             outPaths.push( outPath );
          }
 
          var maskPath = base + "_mask.fits";
-         iastompSaveChannelAsFits( maskSamples, rect.width, rect.height, maskPath );
+         iastampSaveChannelAsFits( maskSamples, rect.width, rect.height, maskPath );
 
          this.statusLabel.text = "Generation en cours (" + this.engine + ")...";
          CoreApplication.processEvents();
@@ -996,7 +996,7 @@ var IAStompDialog = class extends Dialog
             "--opacity", String( this.opacityControl.value / 100 ),
             "--feather-pct", String( this.featherControl.value )
          ];
-         var result = iastompRunExternalProcessBlocking( this.pythonExe, args );
+         var result = iastampRunExternalProcessBlocking( this.pythonExe, args );
          if ( !result.ok || result.stdout.indexOf( "STAMP_OK" ) < 0 )
             throw new Error( "Echec du tampon:\n" + result.stderr );
 
@@ -1007,7 +1007,7 @@ var IAStompDialog = class extends Dialog
          {
             for ( var c = 0; c < numChannels; ++c )
             {
-               var outWin = iastompOpenImageWithRetries( outPaths[c], 4, 500 );
+               var outWin = iastampOpenImageWithRetries( outPaths[c], 4, 500 );
                var outSamples = new Float64Array( rect.width * rect.height );
                outWin.mainView.image.getSamples( outSamples, new Rect( 0, 0, rect.width, rect.height ), 0 );
                outWin.forceClose();
@@ -1030,13 +1030,13 @@ var IAStompDialog = class extends Dialog
          this.applyButton.enabled = true;
 
          this.viewport.clearStrokes();
-         this.viewport.image = iastompRebuildPreview( this );
+         this.viewport.image = iastampRebuildPreview( this );
          this.viewport.refreshBitmap();
          this.statusLabel.text = "Tampon applique a la copie de travail -- clique \"Appliquer a l'image\" pour valider.";
       }
       catch ( e )
       {
-         new MessageBox( String( e.message || e ), "IA stomp", StdIcon.Error, StdButton.Ok ).execute();
+         new MessageBox( String( e.message || e ), "IA stamp", StdIcon.Error, StdButton.Ok ).execute();
          this.statusLabel.text = "Erreur -- voir message.";
       }
       finally
@@ -1062,7 +1062,7 @@ var IAStompDialog = class extends Dialog
       this.undoButton.enabled = false;
       this.stampCount = Math.max( 0, this.stampCount - 1 );
       this.applyButton.enabled = this.stampCount > 0;
-      this.viewport.image = iastompRebuildPreview( this );
+      this.viewport.image = iastampRebuildPreview( this );
       this.viewport.refreshBitmap();
       this.statusLabel.text = "Dernier tampon annule.";
    }
@@ -1085,7 +1085,7 @@ var IAStompDialog = class extends Dialog
       {
          var mb = new MessageBox(
             "Des tampons n'ont pas ete appliques a l'image. Fermer quand meme et les perdre ?",
-            "IA stomp", StdIcon.Warning, StdButton.Yes, StdButton.No
+            "IA stamp", StdIcon.Warning, StdButton.Yes, StdButton.No
          );
          if ( mb.execute() !== StdButton.Yes )
             return;
@@ -1096,17 +1096,17 @@ var IAStompDialog = class extends Dialog
    }
 };
 
-function iastompMain()
+function iastampMain()
 {
    try
    {
-      var dialog = new IAStompDialog;
+      var dialog = new IAStampDialog;
       dialog.execute();
    }
    catch ( e )
    {
-      new MessageBox( String( e.message || e ), "IA stomp", StdIcon.Error, StdButton.Ok ).execute();
+      new MessageBox( String( e.message || e ), "IA stamp", StdIcon.Error, StdButton.Ok ).execute();
    }
 }
 
-iastompMain();
+iastampMain();

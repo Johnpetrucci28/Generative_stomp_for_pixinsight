@@ -1,4 +1,4 @@
-# IA stomp -- tampon génératif pour PixInsight
+# IA stamp -- tampon génératif pour PixInsight
 
 Peins une zone de ton image (halo résiduel, traînée de satellite, pixel
 chaud...), clique "Tamponner" : le script régénère cette zone avec un
@@ -77,7 +77,7 @@ photo classique :
    l'étape suivante (PyTorch, OpenCV, etc.) restent confinées à ce
    dossier `pixinsight/python/venv`, sans rien modifier à l'installation
    Python globale de la machine ni entrer en conflit avec d'autres
-   projets Python déjà présents. C'est aussi ce qui permet à `IAStomp.js`
+   projets Python déjà présents. C'est aussi ce qui permet à `IAStamp.js`
    de retrouver l'interpréteur automatiquement, à un chemin prévisible.
 
    Ouvre une invite de commandes dans ce dossier (`pixinsight/`) et
@@ -100,7 +100,7 @@ photo classique :
    commande a bien été lancée **depuis le dossier `pixinsight/`** (les
    chemins `python/venv` et `python/requirements.txt` sont relatifs) --
    c'est la cause la plus fréquente d'échec à cette étape.
-3. Ouvre `IAStomp.js` dans PixInsight : soit **Script > Execute Script...**
+3. Ouvre `IAStamp.js` dans PixInsight : soit **Script > Execute Script...**
    et navigue jusqu'au fichier, soit glisse directement le fichier sur la
    fenêtre principale de PixInsight.
 4. Au premier lancement, les chemins vers `python.exe` et `cli_stamp.py`
@@ -108,7 +108,7 @@ photo classique :
    l'icône clé à molette en bas à gauche du dialogue pour les indiquer
    manuellement (`python.exe` se trouve dans
    `pixinsight/python/venv/Scripts/`, et `cli_stamp.py` dans
-   `pixinsight/python/stomp/`).
+   `pixinsight/python/stamp/`).
 
 Astuce : clique l'icône "New Instance" (le triangle bleu, à côté de la
 clé à molette) puis glisse-la vers ton espace de travail PixInsight pour

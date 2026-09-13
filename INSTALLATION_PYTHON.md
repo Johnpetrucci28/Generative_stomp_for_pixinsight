@@ -1,4 +1,4 @@
-# Installer Python (pour IA stomp)
+# Installer Python (pour IA stamp)
 
 Ce guide s'adresse à quelqu'un qui n'a jamais installé Python. Si tu sais
 déjà que tu as Python 3.10 ou plus récent, tu peux passer directement à
@@ -55,7 +55,7 @@ changement) puis retente.
 Reviens au `README.md` de ce dossier, section "Installation", étape 2 :
 créer l'environnement virtuel et installer les dépendances.
 
-## macOS / Linux (non testé pour IA stomp, mais la logique est la même)
+## macOS / Linux (non testé pour IA stamp, mais la logique est la même)
 
 - macOS : Python 3 est parfois déjà présent (`python3 --version` dans le
   Terminal). Sinon, installe-le via **https://www.python.org/downloads/**
@@ -74,12 +74,12 @@ propre copie isolée de Python et de ses paquets :
 - ça évite d'installer PyTorch et les autres dépendances "en global" sur
   la machine, où elles pourraient entrer en conflit avec d'autres
   logiciels Python déjà présents (ou l'inverse, si une future
-  désinstallation d'un autre outil casse IA stomp) ;
+  désinstallation d'un autre outil casse IA stamp) ;
 - ça place l'interpréteur `python.exe` à un chemin fixe et prévisible
   (`pixinsight/python/venv/Scripts/python.exe`), ce que le script
-  `IAStomp.js` utilise pour le détecter automatiquement sans rien
+  `IAStamp.js` utilise pour le détecter automatiquement sans rien
   configurer ;
-- supprimer IA stomp revient à supprimer le dossier `pixinsight/` --
+- supprimer IA stamp revient à supprimer le dossier `pixinsight/` --
   rien n'est éparpillé ailleurs sur le système.
 
 Tu n'as jamais besoin d' "activer" ce venv manuellement (`activate.bat`
