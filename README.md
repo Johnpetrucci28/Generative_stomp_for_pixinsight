@@ -70,7 +70,8 @@ encore linéaire (n'affecte jamais les données réelles).
 
 ## Licence
 
-Voir `LICENSES.md` dans ce dossier. LaMa (Apache 2.0) et OpenCV
-(Apache 2.0) -- aucune donnée d'entraînement propriétaire, poids
-téléchargés automatiquement au premier lancement (connexion internet
-requise une seule fois).
+Le code de ce projet est sous licence **MIT** (voir `LICENSE`). Les
+dépendances tierces (LaMa, OpenCV) sont détaillées dans `LICENSES.md` --
+toutes deux en Apache 2.0, aucune donnée d'entraînement propriétaire,
+poids téléchargés automatiquement au premier lancement (connexion
+internet requise une seule fois).
